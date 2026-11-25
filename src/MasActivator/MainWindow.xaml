@@ -245,7 +245,7 @@
         </Border.Effect>
         <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="86" />
+            <RowDefinition Height="68" />
             <RowDefinition Height="*" />
             <RowDefinition Height="46" />
         </Grid.RowDefinitions>
@@ -254,8 +254,8 @@
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
-                    <Border Width="40" Height="40" CornerRadius="10" Background="#33FFFFFF" Margin="0,0,14,0">
-                        <Path Width="22" Height="22" Stretch="Uniform" Stroke="White" StrokeThickness="1.6" Fill="Transparent"
+                    <Border Width="36" Height="36" CornerRadius="9" Background="#33FFFFFF" Margin="0,0,12,0">
+                        <Path Width="20" Height="20" Stretch="Uniform" Stroke="White" StrokeThickness="1.6" Fill="Transparent"
                               Data="M12 2 4 5.5V11c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5.5L12 2Z M8.4 12l2.6 2.6 4.6-5.2" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
@@ -365,10 +365,20 @@
 
                 <Button x:Name="BtnActivate" Content="一 键 激 活" Style="{StaticResource AccentButton}"
                         Height="50" Margin="0,2,0,0" Click="BtnActivate_Click" />
-                <TextBlock Text="点击后如弹出授权窗口，请选择“是”；等待黑色窗口自动结束即可"
-                           FontSize="12" Foreground="#6B7280" HorizontalAlignment="Center" Margin="0,8,0,0" />
-                <TextBlock x:Name="TxtStatus" Text="" FontSize="12.5" Foreground="#2B6CB0"
-                           HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,2" />
+                <Border Height="40" Margin="0,10,0,0" Background="#F0F7FF" CornerRadius="8" Padding="12,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="7" Height="7" Fill="#2B6CB0" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock x:Name="TxtStatus"
+                                   Text="点击后如弹出授权窗口，请选择“是”，并等待黑色窗口自动结束。"
+                                   FontSize="12" Foreground="#2B6CB0" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                    </Grid>
+                </Border>
             </StackPanel>
         </Grid>
 

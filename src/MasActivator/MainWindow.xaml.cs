@@ -288,7 +288,7 @@ namespace MasActivator
         private async void BtnActivate_Click(object sender, RoutedEventArgs e)
         {
             BtnActivate.IsEnabled = false;
-            TxtStatus.Text = "正在准备激活程序…";
+            TxtStatus.Text = "正在准备…";
 
             try
             {
@@ -317,17 +317,17 @@ namespace MasActivator
                         throw new InvalidOperationException("无法启动激活程序。");
                     }
 
-                    TxtStatus.Text = "激活程序已启动，请在弹出的窗口中按提示操作，完成后窗口会自动关闭…";
+                    TxtStatus.Text = "已启动，请在黑色窗口中按提示操作";
                     await Task.Run(() => process.WaitForExit());
 
                     int exitCode = process.ExitCode;
                     RefreshLicenseStatus();
-                    TxtStatus.Text = "激活流程已结束（退出码 " + exitCode + "），请查看窗口中的结果。";
+                    TxtStatus.Text = "已完成（退出码 " + exitCode + "），请查看窗口结果";
                 }
             }
             catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
-                TxtStatus.Text = "已取消授权，激活未执行。需要管理员权限才能激活。";
+                TxtStatus.Text = "已取消授权，激活未执行";
             }
             catch (Exception ex)
             {
