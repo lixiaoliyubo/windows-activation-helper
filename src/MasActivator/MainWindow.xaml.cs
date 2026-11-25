@@ -162,32 +162,21 @@ namespace MasActivator
         /// <returns>脚本命令行参数；未选中任何类型时返回空字符串。</returns>
         private string GetSelectedArguments()
         {
-            if (RbHwid.IsChecked == true)
+            switch (TabActivation.SelectedIndex)
             {
-                return "/HWID /S";
+                case 0:
+                    return "/HWID /S";
+                case 1:
+                    return "/Ohook /S";
+                case 2:
+                    return "/HWID /Ohook /S";
+                case 3:
+                    return "/Z-WindowsESUOffice /S";
+                case 4:
+                    return "/K-WindowsOffice /S";
+                default:
+                    return string.Empty;
             }
-
-            if (RbOhook.IsChecked == true)
-            {
-                return "/Ohook /S";
-            }
-
-            if (RbDual.IsChecked == true)
-            {
-                return "/HWID /Ohook /S";
-            }
-
-            if (RbTsforge.IsChecked == true)
-            {
-                return "/Z-WindowsESUOffice /S";
-            }
-
-            if (RbKms.IsChecked == true)
-            {
-                return "/K-WindowsOffice /S";
-            }
-
-            return string.Empty;
         }
 
         /// <summary>
