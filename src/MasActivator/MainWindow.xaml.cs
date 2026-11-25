@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Navigation;
 using Microsoft.Win32;
 
@@ -242,6 +243,41 @@ namespace MasActivator
             {
                 TxtStatus.Text = "打开浏览器失败：" + ex.Message;
             }
+        }
+
+        /// <summary>
+        /// 自定义标题栏鼠标按下事件，实现拖动窗口；点击标题栏按钮时不触发拖动。
+        /// </summary>
+        /// <param name="sender">触发事件的标题栏边框。</param>
+        /// <param name="e">鼠标事件参数。</param>
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is Button)
+            {
+                return;
+            }
+
+            DragMove();
+        }
+
+        /// <summary>
+        /// 最小化按钮点击事件，将窗口最小化到任务栏。
+        /// </summary>
+        /// <param name="sender">触发事件的按钮。</param>
+        /// <param name="e">路由事件参数。</param>
+        private void BtnMinimize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        /// <summary>
+        /// 关闭按钮点击事件，退出应用程序。
+        /// </summary>
+        /// <param name="sender">触发事件的按钮。</param>
+        /// <param name="e">路由事件参数。</param>
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
 
         /// <summary>
