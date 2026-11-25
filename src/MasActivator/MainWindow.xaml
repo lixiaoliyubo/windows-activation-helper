@@ -41,60 +41,32 @@
             <Setter Property="Foreground" Value="#111827" />
         </Style>
 
-        <Style x:Key="TypeTabControl" TargetType="TabControl">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabControl">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <TabPanel x:Name="HeaderPanel" Grid.Row="0" IsItemsHost="True" Panel.ZIndex="1" />
-                            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1"
-                                              ContentSource="SelectedContent" Margin="0,12,0,0" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="TypeCombo" TargetType="ComboBox">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#111827" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D7E0EC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="10,0" />
         </Style>
 
-        <Style x:Key="TypeTabItem" TargetType="TabItem">
-            <Setter Property="Height" Value="38" />
-            <Setter Property="MinWidth" Value="120" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Bd" Background="#F3F6FA" BorderBrush="Transparent"
-                                BorderThickness="0,0,0,2" CornerRadius="6,6,0,0" Padding="10,0"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter x:Name="Content" HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              TextElement.FontSize="12.5"
-                                              TextElement.Foreground="#6B7280" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#F0F7FF" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2B6CB0" />
-                                <Setter TargetName="Content" Property="TextElement.Foreground" Value="#2B6CB0" />
-                                <Setter TargetName="Content" Property="TextElement.FontWeight" Value="SemiBold" />
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#EAF1F8" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="TypeComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="#111827" />
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#EAF2FB" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="#2B6CB0" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
-        <Style x:Key="TabDescription" TargetType="Border">
+        <Style x:Key="DescriptionPanel" TargetType="Border">
             <Setter Property="Background" Value="#F0F7FF" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,11" />
@@ -227,53 +199,22 @@
                             <Border Width="3" Height="14" Background="#2B6CB0" CornerRadius="2" Margin="0,0,8,0" />
                             <TextBlock Text="03  选择激活类型" Style="{StaticResource SectionTitle}" />
                         </StackPanel>
-                        <TabControl x:Name="TabActivation" Style="{StaticResource TypeTabControl}" SelectedIndex="0">
-                            <TabItem Header="Windows 数字激活" Style="{StaticResource TypeTabItem}">
-                                <Border Style="{StaticResource TabDescription}">
-                                    <StackPanel>
-                                        <TextBlock Text="HWID · 推荐" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                        <TextBlock Text="自动匹配当前版本，激活信息与硬件绑定，重装系统后仍可自动激活。"
-                                                   FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-                            <TabItem Header="Office 激活" Style="{StaticResource TypeTabItem}">
-                                <Border Style="{StaticResource TabDescription}">
-                                    <StackPanel>
-                                        <TextBlock Text="Ohook" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                        <TextBlock Text="适用于 Office 2016—2024 / Microsoft 365，激活后无需重复操作。"
-                                                   FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-                            <TabItem Header="双激活" Style="{StaticResource TypeTabItem}">
-                                <Border Style="{StaticResource TabDescription}">
-                                    <StackPanel>
-                                        <TextBlock Text="Windows + Office" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                        <TextBlock Text="一次完成操作系统与办公软件的激活，适合全新安装的电脑。"
-                                                   FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-                            <TabItem Header="TSforge" Style="{StaticResource TypeTabItem}">
-                                <Border Style="{StaticResource TabDescription}">
-                                    <StackPanel>
-                                        <TextBlock Text="TSforge 兼容性方案" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                        <TextBlock Text="支持 Windows / ESU / Office，用于常规方式不适用时的替代方案。"
-                                                   FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-                            <TabItem Header="KMS（180 天）" Style="{StaticResource TypeTabItem}">
-                                <Border Style="{StaticResource TabDescription}">
-                                    <StackPanel>
-                                        <TextBlock Text="Online KMS" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                        <TextBlock Text="适合临时或批量环境，有效期 180 天，需要保持联网。"
-                                                   FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </TabItem>
-                        </TabControl>
+                        <ComboBox x:Name="CmbActivation" Style="{StaticResource TypeCombo}" SelectedIndex="0"
+                                  SelectionChanged="CmbActivation_SelectionChanged">
+                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Windows 数字激活（HWID）· 推荐" />
+                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Office 激活（Ohook）" />
+                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Windows + Office 双激活" />
+                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="TSforge 兼容性方案" />
+                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="KMS 激活（180 天）" />
+                        </ComboBox>
+                        <Border Style="{StaticResource DescriptionPanel}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtTypeTitle" Text="HWID · 推荐" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
+                                <TextBlock x:Name="TxtTypeDesc"
+                                           Text="自动匹配当前版本，激活信息与硬件绑定，重装系统后仍可自动激活。"
+                                           FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 

@@ -14,7 +14,7 @@
 
 1. 下载 `publish/WindowsActivationHelper.exe`，双击打开。
 2. 点击「打开官方文档」查看各激活方式的说明。
-3. 切换「选择激活类型」中的 Tab，选择一种方式：
+3. 在「选择激活类型」下拉框中选择一种方式：
    - **Windows 数字激活（HWID）**：推荐，自动匹配版本，重装系统后仍可激活
    - **Office 激活（Ohook）**：Office 2016—2024 / Microsoft 365
    - **Windows + Office 双激活**：一次完成两者

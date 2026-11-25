@@ -7,6 +7,7 @@ using System.Management;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Win32;
 
@@ -25,6 +26,7 @@ namespace MasActivator
             InitializeComponent();
             LoadSystemInfo();
             RefreshLicenseStatus();
+            UpdateTypeDescription();
         }
 
         /// <summary>
@@ -162,7 +164,7 @@ namespace MasActivator
         /// <returns>脚本命令行参数；未选中任何类型时返回空字符串。</returns>
         private string GetSelectedArguments()
         {
-            switch (TabActivation.SelectedIndex)
+            switch (CmbActivation.SelectedIndex)
             {
                 case 0:
                     return "/HWID /S";
@@ -177,6 +179,51 @@ namespace MasActivator
                 default:
                     return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// 根据下拉框当前选项，刷新下方的激活方式说明。
+        /// </summary>
+        private void UpdateTypeDescription()
+        {
+            if (TxtTypeTitle == null || TxtTypeDesc == null)
+            {
+                return;
+            }
+
+            switch (CmbActivation.SelectedIndex)
+            {
+                case 1:
+                    TxtTypeTitle.Text = "Ohook";
+                    TxtTypeDesc.Text = "适用于 Office 2016—2024 / Microsoft 365，激活后无需重复操作。";
+                    break;
+                case 2:
+                    TxtTypeTitle.Text = "Windows + Office";
+                    TxtTypeDesc.Text = "一次完成操作系统与办公软件的激活，适合全新安装的电脑。";
+                    break;
+                case 3:
+                    TxtTypeTitle.Text = "TSforge 兼容性方案";
+                    TxtTypeDesc.Text = "支持 Windows / ESU / Office，用于常规方式不适用时的替代方案。";
+                    break;
+                case 4:
+                    TxtTypeTitle.Text = "Online KMS";
+                    TxtTypeDesc.Text = "适合临时或批量环境，有效期 180 天，需要保持联网。";
+                    break;
+                default:
+                    TxtTypeTitle.Text = "HWID · 推荐";
+                    TxtTypeDesc.Text = "自动匹配当前版本，激活信息与硬件绑定，重装系统后仍可自动激活。";
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 下拉框选项变化事件，同步更新说明文字。
+        /// </summary>
+        /// <param name="sender">触发事件的下拉框。</param>
+        /// <param name="e">选项变化事件参数。</param>
+        private void CmbActivation_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateTypeDescription();
         }
 
         /// <summary>
