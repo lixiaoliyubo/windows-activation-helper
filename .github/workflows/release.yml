@@ -51,6 +51,25 @@ jobs:
             git push
           fi
 
+      - name: 同步成品到 Gitee
+        shell: bash
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          if [ -n "$GITEE_TOKEN" ]; then
+            curl -k -sS -X POST \
+              -H "Content-Type: application/json" \
+              -d "{\"access_token\":\"$GITEE_TOKEN\",\"content\":\"$(base64 -w0 publish/WindowsActivationHelper.exe)\",\"encoding\":\"base64\",\"message\":\"chore: 同步构建产物 v${{ steps.version.outputs.value }}\",\"branch\":\"main\"}" \
+              "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/contents/publish/WindowsActivationHelper.exe"
+            curl -k -sS -X POST \
+              -d "access_token=$GITEE_TOKEN" \
+              -d "tag_name=v${{ steps.version.outputs.value }}" \
+              -d "name=v${{ steps.version.outputs.value }}" \
+              -d "body=自动构建发布 v${{ steps.version.outputs.value }}" \
+              -d "target_commitish=main" \
+              "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases"
+          fi
+
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:

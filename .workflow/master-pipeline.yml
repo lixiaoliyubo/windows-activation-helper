@@ -27,6 +27,8 @@ stages:
           git add publish\WindowsActivationHelper.exe
           git diff --cached --quiet || git commit -m "chore: 自动构建 v1.0.${GITEE_PIPELINE_BUILD_NUMBER} [skip ci]"
           git push origin main
+          git tag -f v1.0.${GITEE_PIPELINE_BUILD_NUMBER}
+          git push -f origin v1.0.${GITEE_PIPELINE_BUILD_NUMBER}
 
   - stage: release
     displayName: 发布版本

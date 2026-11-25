@@ -29,6 +29,171 @@ namespace MasActivator
             RefreshLicenseStatus();
             UpdateTypeDescription();
             SetVersionText();
+            Loaded += MainWindow_Loaded;
+        }
+
+        /// <summary>
+        /// 缓存检测到的更新信息，供按钮点击时执行升级。
+        /// </summary>
+        private UpdateService.UpdateInfo _pendingUpdate;
+
+        /// <summary>
+        /// 窗口加载完成后自动检测新版本，发现后弹窗让用户选择忽略或更新。
+        /// </summary>
+        /// <param name="sender">触发事件的窗口。</param>
+        /// <param name="e">路由事件参数。</param>
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await CheckForUpdateAsync(false, false);
+        }
+
+        /// <summary>
+        /// 查询远端版本：发现新版本时高亮按钮并按配置弹窗，手动检查时始终弹窗。
+        /// </summary>
+        /// <param name="showResult">是否反馈「已是最新」等结果信息。</param>
+        /// <param name="forcePrompt">为 true 时即使忽略过该版本也强制弹窗。</param>
+        /// <returns>异步操作任务。</returns>
+        private async Task CheckForUpdateAsync(bool showResult, bool forcePrompt)
+        {
+            BtnCheckUpdate.IsEnabled = false;
+            try
+            {
+                string versionText = GetCurrentVersionText();
+                Version current;
+                if (!Version.TryParse(versionText, out current))
+                {
+                    current = new Version(1, 0, 0);
+                }
+
+                _pendingUpdate = await UpdateService.CheckAsync(current);
+                if (_pendingUpdate != null)
+                {
+                    BtnCheckUpdate.Content = "有新版本 v" + _pendingUpdate.Version;
+                    BtnCheckUpdate.Foreground = new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(255, 214, 102));
+                    TxtStatus.Text = "发现新版本 v" + _pendingUpdate.Version + "，点击页脚「有新版本」查看详情";
+
+                    string ignored = UpdateWindow.ReadIgnoredVersion();
+                    bool alreadyIgnored = !forcePrompt &&
+                        string.Equals(ignored, _pendingUpdate.Version.ToString(), StringComparison.OrdinalIgnoreCase);
+                    if (!alreadyIgnored)
+                    {
+                        await PromptUpdateAsync(versionText);
+                    }
+                }
+                else if (showResult)
+                {
+                    TxtStatus.Text = "已是最新版本";
+                }
+            }
+            catch (Exception)
+            {
+                if (showResult)
+                {
+                    TxtStatus.Text = "检查更新失败，请稍后重试";
+                }
+            }
+            finally
+            {
+                BtnCheckUpdate.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// 读取当前程序版本号并去掉构建元数据后缀。
+        /// </summary>
+        /// <returns>标准化后的版本字符串。</returns>
+        private static string GetCurrentVersionText()
+        {
+            string version = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+            int plusIndex = version.IndexOf('+');
+            return plusIndex >= 0 ? version.Substring(0, plusIndex) : version;
+        }
+
+        /// <summary>
+        /// 弹出更新详情窗口，用户选择立即更新时执行升级。
+        /// </summary>
+        /// <param name="currentVersion">当前版本号，用于弹窗对比展示。</param>
+        /// <returns>异步操作任务。</returns>
+        private async Task PromptUpdateAsync(string currentVersion)
+        {
+            if (_pendingUpdate == null)
+            {
+                return;
+            }
+
+            var window = new UpdateWindow(currentVersion, _pendingUpdate)
+            {
+                Owner = this
+            };
+            bool? result = window.ShowDialog();
+            if (result != true || !window.IsUpdateConfirmed)
+            {
+                TxtStatus.Text = "已忽略本次更新，可在页脚「检查更新」重新查看";
+                return;
+            }
+
+            await InstallUpdateAsync();
+        }
+
+        /// <summary>
+        /// 下载新版本并启动替换脚本，完成后关闭当前程序。
+        /// </summary>
+        /// <returns>异步操作任务。</returns>
+        private async Task InstallUpdateAsync()
+        {
+            TxtStatus.Text = "正在下载新版本，请稍候…";
+            BtnCheckUpdate.IsEnabled = false;
+            try
+            {
+                string exePath = Assembly.GetExecutingAssembly().Location;
+                bool started = await UpdateService.InstallAsync(_pendingUpdate, exePath, Process.GetCurrentProcess().Id);
+                if (started)
+                {
+                    TxtStatus.Text = "下载完成，程序即将自动重启完成升级";
+                    await Task.Delay(800);
+                    Close();
+                }
+                else
+                {
+                    TxtStatus.Text = "下载失败，请稍后重试";
+                    BtnCheckUpdate.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtStatus.Text = "升级失败：" + ex.Message;
+                BtnCheckUpdate.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// 检查更新按钮点击：有可用更新则弹出详情，否则主动发起一次检测。
+        /// </summary>
+        /// <param name="sender">触发事件的按钮。</param>
+        /// <param name="e">路由事件参数。</param>
+        private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (_pendingUpdate != null)
+            {
+                await PromptUpdateAsync(GetCurrentVersionText());
+                return;
+            }
+
+            TxtStatus.Text = "正在检查更新…";
+            await CheckForUpdateAsync(true, true);
+        }
+
+        /// <summary>
+        /// 关于我按钮点击，打开关于窗口。
+        /// </summary>
+        /// <param name="sender">触发事件的按钮。</param>
+        /// <param name="e">路由事件参数。</param>
+        private void BtnAbout_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new AboutWindow { Owner = this };
+            window.ShowDialog();
         }
 
         /// <summary>
