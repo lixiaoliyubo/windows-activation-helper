@@ -62,9 +62,14 @@ jobs:
           fi
           set -e
           echo "更新 Gitee 仓库内 exe..."
+          sha=$(curl -k -sS \
+            "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/contents/publish/WindowsActivationHelper.exe?access_token=$GITEE_TOKEN&ref=main" \
+            | grep -o '"sha":"[a-f0-9]*"' | head -n1 | cut -d'"' -f4)
+          sha_json=""
+          if [ -n "$sha" ]; then sha_json=",\"sha\":\"$sha\""; fi
           payload_file=$(mktemp)
-          printf '{"access_token":"%s","content":"%s","encoding":"base64","message":"chore: 同步构建产物 v%s","branch":"main"}' \
-            "$GITEE_TOKEN" "$(base64 -w0 publish/WindowsActivationHelper.exe)" "${{ steps.version.outputs.value }}" > "$payload_file"
+          printf '{"access_token":"%s","content":"%s","encoding":"base64","message":"chore: 同步构建产物 v%s","branch":"main"%s}' \
+            "$GITEE_TOKEN" "$(base64 -w0 publish/WindowsActivationHelper.exe)" "${{ steps.version.outputs.value }}" "$sha_json" > "$payload_file"
           resp=$(curl -k -sS -w "\n%{http_code}" -X PUT \
             -H "Content-Type: application/json" \
             -d @"$payload_file" \
