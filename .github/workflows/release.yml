@@ -56,19 +56,35 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          if [ -n "$GITEE_TOKEN" ]; then
-            curl -k -sS -X POST \
-              -H "Content-Type: application/json" \
-              -d "{\"access_token\":\"$GITEE_TOKEN\",\"content\":\"$(base64 -w0 publish/WindowsActivationHelper.exe)\",\"encoding\":\"base64\",\"message\":\"chore: 同步构建产物 v${{ steps.version.outputs.value }}\",\"branch\":\"main\"}" \
-              "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/contents/publish/WindowsActivationHelper.exe"
-            curl -k -sS -X POST \
-              -d "access_token=$GITEE_TOKEN" \
-              -d "tag_name=v${{ steps.version.outputs.value }}" \
-              -d "name=v${{ steps.version.outputs.value }}" \
-              -d "body=自动构建发布 v${{ steps.version.outputs.value }}" \
-              -d "target_commitish=main" \
-              "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases"
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::error::GITEE_TOKEN 未配置，无法同步到 Gitee"
+            exit 1
           fi
+          set -e
+          echo "更新 Gitee 仓库内 exe..."
+          resp=$(curl -k -sS -w "\n%{http_code}" -X PUT \
+            -H "Content-Type: application/json" \
+            -d "{\"access_token\":\"$GITEE_TOKEN\",\"content\":\"$(base64 -w0 publish/WindowsActivationHelper.exe)\",\"encoding\":\"base64\",\"message\":\"chore: 同步构建产物 v${{ steps.version.outputs.value }}\",\"branch\":\"main\"}" \
+            "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/contents/publish/WindowsActivationHelper.exe")
+          code=$(echo "$resp" | tail -n1)
+          if [ "$code" != "201" ] && [ "$code" != "200" ]; then
+            echo "::error::更新 Gitee exe 失败 HTTP $code: $resp"
+            exit 1
+          fi
+          echo "创建 Gitee Release v${{ steps.version.outputs.value }}..."
+          resp=$(curl -k -sS -w "\n%{http_code}" -X POST \
+            -d "access_token=$GITEE_TOKEN" \
+            -d "tag_name=v${{ steps.version.outputs.value }}" \
+            -d "name=v${{ steps.version.outputs.value }}" \
+            -d "body=自动构建发布 v${{ steps.version.outputs.value }}" \
+            -d "target_commitish=main" \
+            "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases")
+          code=$(echo "$resp" | tail -n1)
+          body=$(echo "$resp" | head -n -1)
+          if [ "$code" != "201" ]; then
+            echo "::warning::创建 Gitee Release 返回 HTTP $code（若 tag 已存在可忽略）: $body"
+          fi
+          echo "Gitee 同步完成"
 
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
