@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>MasActivator</RootNamespace>
+    <AssemblyName>WindowsActivationHelper</AssemblyName>
+    <ApplicationManifest>App.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <Authors>源动力</Authors>
+    <Company>源动力</Company>
+    <Product>Windows 一键激活助手</Product>
+    <Description>基于 Microsoft Activation Scripts 的图形化一键激活工具</Description>
+    <Copyright>Copyright © 2026 源动力</Copyright>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Management" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\MAS_AIO.cmd" />
+  </ItemGroup>
+
+</Project>

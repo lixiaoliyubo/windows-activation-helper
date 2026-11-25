@@ -1,0 +1,7 @@
+.mas-source/
+.probe/
+src/**/bin/
+src/**/obj/
+*.pdb
+*.user
+.vs/
