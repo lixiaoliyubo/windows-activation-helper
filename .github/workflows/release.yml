@@ -1,0 +1,63 @@
+name: 自动构建与发布
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.workbuddy/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 计算版本号
+        id: version
+        shell: bash
+        run: echo "value=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: 构建
+        shell: cmd
+        run: dotnet build src\MasActivator\MasActivator.csproj -c Release --nologo -p:Version=${{ steps.version.outputs.value }}
+
+      - name: 复制成品
+        shell: cmd
+        run: copy /Y src\MasActivator\bin\Release\net48\WindowsActivationHelper.exe publish\WindowsActivationHelper.exe
+
+      - name: 回写成品到仓库
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add publish/WindowsActivationHelper.exe
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: 自动构建 v${{ steps.version.outputs.value }} [skip ci]"
+            git push
+          fi
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.value }}
+          name: v${{ steps.version.outputs.value }}
+          body: |
+            自动构建发布 v${{ steps.version.outputs.value }}
+            基于 MAS 3.14，单文件 exe，无需安装运行时。
+          files: publish/WindowsActivationHelper.exe
+          generate_release_notes: true

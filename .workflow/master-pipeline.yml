@@ -1,0 +1,39 @@
+version: '1.0'
+name: master-pipeline
+displayName: 自动构建与发布
+
+triggers:
+  push:
+    branches:
+      include:
+        - main
+    commitMessages:
+      exclude:
+        - '\[skip ci\]'
+
+stages:
+  - stage: build
+    displayName: 构建并回写
+    steps:
+      - step: shell@agent
+        name: build_and_commit
+        displayName: 构建 exe 并提交到 Gitee
+        hostGroupID: windows-builder
+        script: |
+          dotnet build src\MasActivator\MasActivator.csproj -c Release --nologo -p:Version=1.0.${GITEE_PIPELINE_BUILD_NUMBER}
+          copy /Y src\MasActivator\bin\Release\net48\WindowsActivationHelper.exe publish\WindowsActivationHelper.exe
+          git config user.name "gitee-go"
+          git config user.email "gitee-go@noreply.gitee.com"
+          git add publish\WindowsActivationHelper.exe
+          git diff --cached --quiet || git commit -m "chore: 自动构建 v1.0.${GITEE_PIPELINE_BUILD_NUMBER} [skip ci]"
+          git push origin main
+
+  - stage: release
+    displayName: 发布版本
+    steps:
+      - step: shell@agent
+        name: create_release
+        displayName: 创建 Gitee Release
+        hostGroupID: windows-builder
+        script: |
+          curl -k -sS -X POST "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases" -d "access_token=${GITEE_TOKEN}" -d "tag_name=v1.0.${GITEE_PIPELINE_BUILD_NUMBER}" -d "name=v1.0.${GITEE_PIPELINE_BUILD_NUMBER}" -d "body=自动构建发布 v1.0.${GITEE_PIPELINE_BUILD_NUMBER}" -d "target_commitish=main"

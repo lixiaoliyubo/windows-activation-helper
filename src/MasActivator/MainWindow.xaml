@@ -265,7 +265,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,18,0">
                     <Border Background="#33FFFFFF" CornerRadius="12" Padding="10,4" VerticalAlignment="Center">
-                        <TextBlock Text="v1.0.0" FontSize="12" Foreground="White" />
+                        <TextBlock x:Name="TxtVersionBadge" Text="v1.0.0" FontSize="12" Foreground="White" />
                     </Border>
                     <Button x:Name="BtnMinimize" Content="—" Style="{StaticResource WindowButton}" Margin="14,0,0,0"
                             Click="BtnMinimize_Click" />
@@ -384,7 +384,7 @@
 
         <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E3E9F1" BorderThickness="0,1,0,0" CornerRadius="0,0,12,12">
             <Grid Margin="22,0">
-                <TextBlock Text="v1.0.0 · 内置 MAS 3.14 · © 2026 源动力" FontSize="11.5" Foreground="#8A94A6"
+                <TextBlock x:Name="TxtVersionFooter" Text="v1.0.0 · 内置 MAS 3.14 · © 2026 源动力" FontSize="11.5" Foreground="#8A94A6"
                            VerticalAlignment="Center" HorizontalAlignment="Left" />
                 <TextBlock Text="仅供个人学习与测试使用，请支持正版" FontSize="11.5" Foreground="#8A94A6"
                            VerticalAlignment="Center" HorizontalAlignment="Right" />

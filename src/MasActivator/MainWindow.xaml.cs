@@ -28,6 +28,25 @@ namespace MasActivator
             LoadSystemInfo();
             RefreshLicenseStatus();
             UpdateTypeDescription();
+            SetVersionText();
+        }
+
+        /// <summary>
+        /// 从程序集的 InformationalVersion 读取版本号并显示在标题栏和页脚，流水线构建时可自动注入新版本。
+        /// </summary>
+        private void SetVersionText()
+        {
+            string version = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+
+            int plusIndex = version.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                version = version.Substring(0, plusIndex);
+            }
+
+            TxtVersionBadge.Text = "v" + version;
+            TxtVersionFooter.Text = "v" + version + " · 内置 MAS 3.14 · © 2026 源动力";
         }
 
         /// <summary>

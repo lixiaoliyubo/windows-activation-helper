@@ -48,6 +48,16 @@ build.cmd                       一键编译脚本
 LICENSE                         GPL-3.0（跟随 MAS 上游许可）
 ```
 
+## 自动化发布
+
+- **GitHub Actions**：`.github/workflows/release.yml` 已配置好。每次 push 到 `main`（或手动触发）会自动构建、把新 exe 回写到仓库，并创建 `v1.0.<运行号>` 的 Release。无需额外配置。
+- **Gitee Go**：`.workflow/master-pipeline.yml` 已配置好，前置条件：
+  1. 在 Gitee 仓库开通 Gitee Go；
+  2. 创建名为 `windows-builder` 的 Windows 自有主机组，主机需安装 .NET SDK 和 Git；
+  3. 在流水线变量中配置 `GITEE_TOKEN`（Gitee 私人令牌，需仓库权限）。
+  之后 push 到 `main` 会自动构建、回写 exe 到 Gitee，并创建同名 Release。提交信息含 `[skip ci]` 时不会触发循环构建。
+- 版本号由流水线通过 `-p:Version=1.0.<构建号>` 注入，界面右上角和页脚会自动显示实际版本。
+
 ## 免责声明
 
 本工具仅为 MAS 的图形化封装，供个人学习与测试使用。请遵守所在地区的法律法规，商业环境请购买正版授权。使用脚本激活产生的风险由使用者自行承担。
