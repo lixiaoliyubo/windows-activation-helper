@@ -92,6 +92,14 @@ jobs:
           body=$(echo "$resp" | head -n -1)
           if [ "$code" != "201" ]; then
             echo "::warning::创建 Gitee Release 返回 HTTP $code（若 tag 已存在可忽略）: $body"
+          else
+            release_id=$(echo "$body" | grep -o '"id":[0-9]*' | head -n1 | cut -d: -f2)
+            echo "上传 exe 附件到 Release $release_id..."
+            curl -k -sS -X POST \
+              -H "Content-Type: multipart/form-data" \
+              -F "access_token=$GITEE_TOKEN" \
+              -F "file=@publish/WindowsActivationHelper.exe" \
+              "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases/$release_id/attach_files"
           fi
           echo "Gitee 同步完成"
 
