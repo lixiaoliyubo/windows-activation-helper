@@ -85,7 +85,7 @@ jobs:
             -d "access_token=$GITEE_TOKEN" \
             -d "tag_name=v${{ steps.version.outputs.value }}" \
             -d "name=v${{ steps.version.outputs.value }}" \
-            -d "body=自动构建发布 v${{ steps.version.outputs.value }}" \
+            -d "body=Release v${{ steps.version.outputs.value }} (MAS 3.14, single-file exe)" \
             -d "target_commitish=main" \
             "https://gitee.com/api/v5/repos/lixiaoliyubo/windows-activation-helper/releases")
           code=$(echo "$resp" | tail -n1)
@@ -103,13 +103,24 @@ jobs:
           fi
           echo "Gitee 同步完成"
 
+      - name: 打版本标签
+        shell: bash
+        run: |
+          # 显式创建标签：消息保持 ASCII，避免 Windows runner 编码把中文写成 ?????
+          if git rev-parse "v${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
+            echo "标签已存在，跳过"
+          else
+            git tag -a "v${{ steps.version.outputs.value }}" -m "Release v${{ steps.version.outputs.value }}"
+            git push origin "v${{ steps.version.outputs.value }}"
+          fi
+
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.value }}
           name: v${{ steps.version.outputs.value }}
           body: |
-            自动构建发布 v${{ steps.version.outputs.value }}
+            Release v${{ steps.version.outputs.value }}
             基于 MAS 3.14，单文件 exe，无需安装运行时。
           files: publish/WindowsActivationHelper.exe
           generate_release_notes: true
