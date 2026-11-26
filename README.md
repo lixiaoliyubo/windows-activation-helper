@@ -1,49 +1,72 @@
+<div align="center">
+
 # Windows 一键激活助手
 
-基于微软官方 KMS 机制的图形化桌面工具：使用官方 GVLK 客户端密钥，调用系统自带 `slmgr` 完成激活。单一 exe、无需安装运行时、无需额外脚本，小白也能一键完成激活。
+**把装密钥、设 KMS 服务器、发起激活三条命令，压成一个按钮的桌面工具。**
 
-## 特性
+单文件 exe · 免安装 · 全程静默 · GPL-3.0 开源
 
-- 单文件 exe（约 220 KB），Win10/11 双击即用（系统已内置 .NET Framework 4.8）
-- 按当前系统版本自动匹配微软官方 GVLK 密钥，通过 `slmgr` 三步激活：安装密钥 → 设置 KMS 服务器 → 激活
-- 全程无窗口、无弹窗，界面实时显示激活状态
-- 已激活时按钮自动切换为「卸载激活」，一键卸载产品密钥恢复未激活
-- 自动读取系统版本、内部版本、架构、安装类型与当前激活状态
+</div>
 
-## 使用方法
+---
 
-1. 下载 `publish/WindowsActivationHelper.exe`，双击打开（会请求管理员权限）。
-2. 界面显示当前系统信息与激活状态。
-3. 点击「一键激活」，等待状态变为绿色「已激活」即可。
-4. 需要取消激活时，点击红色「卸载激活」。
+## ✨ 特性
 
-支持的版本（微软官方 GVLK）：专业版、专业教育版、专业工作站版、企业版、教育版、企业版 LTSC/LTSB、IoT 企业版 LTSC 及其 N 版。家庭版不属于 KMS 批量授权范围，工具会给出明确提示。
+- **一键激活**：自动读取系统 `EditionID`，匹配微软官方公开的 GVLK 密钥，依次执行 `slmgr /ipk` → `slmgr /skms` → `slmgr /ato`，全程静默无黑窗
+- **状态实时确认**：轮询 WMI `SoftwareLicensingProduct`，确认 `LicenseStatus` 变为已授权才报成功，命令退出不等于激活完成
+- **卸载激活**：已激活时按钮自动变红色「卸载激活」，一键执行 `slmgr /upk` 恢复未激活
+- **零弹窗**：成功失败都写在状态栏，唯一的系统交互是 UAC 提权
+- **自动更新**：启动时检查 Gitee Release，支持一键下载替换升级，页脚可手动检查
+- **系统信息展示**：自动读取系统版本、内部版本、架构、安装类型与当前激活状态
 
-## 编译
+## 📥 下载
 
-环境：Windows + .NET SDK（本项目使用 10.0.400 编译通过，目标框架 net48）。
+从 [Releases](https://gitee.com/lixiaoliyubo/windows-activation-helper/releases) 页下载 `WindowsActivationHelper.exe`（约 220 KB）。
+
+## 🚀 使用方法
+
+1. 双击运行，UAC 弹窗点「是」（工具需要管理员权限执行 slmgr）
+2. 界面显示当前系统信息与激活状态
+3. 点蓝色「**一键激活**」，等状态栏变绿即可
+4. 需要取消时，点红色「**卸载激活**」
+
+<div align="center">
+<img src="docs/app-inactive.png" width="420" alt="未激活状态">&nbsp;&nbsp;<img src="docs/app-activated.png" width="420" alt="已激活状态">
+</div>
+
+## 📋 环境要求
+
+| 项 | 要求 |
+|---|---|
+| 系统 | Windows 10 / 11（家庭版不在 KMS 批量授权范围，工具会明确提示） |
+| 权限 | 管理员（slmgr 本身要求） |
+| 网络 | 需能连通预配置的 KMS 服务器 |
+| 运行时 | 无需安装，系统自带 .NET Framework 4.8 |
+
+## 🔧 编译
 
 ```bat
 build.cmd
 ```
 
-产物：`publish\WindowsActivationHelper.exe`
+环境：Windows + .NET SDK（项目以 SDK 10.0.400 编译，目标框架 `net48`），产物输出到 `publish\WindowsActivationHelper.exe`。
 
-## 目录结构
+## 📁 目录结构
 
 ```text
 src/MasActivator/                WPF 源码
   MainWindow.xaml               单页界面
   MainWindow.xaml.cs            系统信息读取、GVLK 匹配、slmgr 调用
-  App.manifest                 DPI 感知与管理员权限清单
+  UpdateService.cs              版本检测与自更新
+  App.manifest                  DPI 感知与管理员权限清单
 publish/WindowsActivationHelper.exe  成品
 build.cmd                       一键编译脚本
 ```
 
-## 免责声明
+## 📄 免责声明
 
-本工具仅供个人学习与测试使用。KMS 激活依赖第三方 KMS 服务器，有效期 180 天，到期可再次运行续期。请遵守所在地区的法律法规，商业环境请购买正版授权。使用产生的风险由使用者自行承担。
+本工具仅供个人学习与测试使用。激活依赖第三方 KMS 服务器，服务器可用性不受本工具控制。请遵守所在地区的法律法规，商业环境请购买正版授权。使用产生的风险由使用者自行承担。
 
-## 许可证
+## 📃 许可证
 
-本项目遵循 [GPL-3.0](LICENSE)。
+[GPL-3.0](LICENSE)
