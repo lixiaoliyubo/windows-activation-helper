@@ -30,7 +30,7 @@ jobs:
       - name: 计算版本号
         id: version
         shell: bash
-        run: echo "value=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        run: echo "value=1.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
       - name: 构建
         shell: cmd
