@@ -138,15 +138,17 @@ namespace MasActivator
             }
 
             string scriptPath = Path.Combine(Path.GetTempPath(), "MasActivatorUpdate.cmd");
-            string script = BuildUpdateScript(currentProcessId, downloadPath, targetPath, scriptPath);
+            string script = BuildUpdateScript(currentProcessId, downloadPath, targetPath);
             File.WriteAllText(scriptPath, script, Encoding.Default);
 
+            // 直接由 cmd 隐藏执行脚本：不能用 start 另开窗口，否则升级过程中会弹出黑色控制台
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = "/c start \"\" \"" + scriptPath + "\"",
+                Arguments = "/c \"" + scriptPath + "\"",
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
             };
             System.Diagnostics.Process.Start(startInfo);
             return true;
@@ -154,13 +156,14 @@ namespace MasActivator
 
         /// <summary>
         /// 生成等待进程退出、替换文件并重启应用的批处理脚本。
+        /// 脚本不删除自身：批处理运行中删除自身会输出「找不到批处理文件」等错误行，
+        /// 且脚本每次升级都会被同名文件覆盖，无需清理。
         /// </summary>
         /// <param name="processId">需要等待退出的进程 ID。</param>
         /// <param name="sourcePath">下载完成的新 exe 路径。</param>
         /// <param name="targetPath">需要被替换的 exe 路径。</param>
-        /// <param name="scriptPath">脚本自身路径，替换完成后删除。</param>
         /// <returns>批处理脚本内容。</returns>
-        private static string BuildUpdateScript(int processId, string sourcePath, string targetPath, string scriptPath)
+        private static string BuildUpdateScript(int processId, string sourcePath, string targetPath)
         {
             return "@echo off\r\n"
                 + ":wait\r\n"
@@ -170,8 +173,8 @@ namespace MasActivator
                 + "goto wait\r\n"
                 + ":replace\r\n"
                 + "copy /Y \"" + sourcePath + "\" \"" + targetPath + "\" >NUL\r\n"
-                + "start \"\" \"" + targetPath + "\"\r\n"
-                + "del \"" + scriptPath + "\" >NUL 2>&1\r\n";
+                + "del \"" + sourcePath + "\" >NUL 2>&1\r\n"
+                + "start \"\" \"" + targetPath + "\"\r\n";
         }
 
         /// <summary>
