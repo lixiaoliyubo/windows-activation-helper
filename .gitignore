@@ -6,3 +6,5 @@ src/**/obj/
 *.user
 .vs/
 .workbuddy
+vmtest/
+shots/

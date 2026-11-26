@@ -286,6 +286,30 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="WarnButton" TargetType="Button" BasedOn="{StaticResource AccentButton}">
+            <Setter Property="Background" Value="#C0392B" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#A93226" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#922B21" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#D9A7A1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border Margin="10" Background="#F4F7FB" BorderBrush="#D6DFEB" BorderThickness="1" CornerRadius="12">
@@ -396,7 +420,7 @@
                 </Border>
 
                 <Button x:Name="BtnActivate" Content="一 键 激 活" Style="{StaticResource AccentButton}"
-                        Height="50" Margin="0,2,0,0" Click="BtnActivate_Click" />
+                        Height="50" Margin="0,2,0,0" Click="BtnActivate_Click" IsDefault="True" />
                 <Border Height="40" Margin="0,10,0,0" Background="#F0F7FF" CornerRadius="8" Padding="12,0">
                     <Grid>
                         <Grid.ColumnDefinitions>

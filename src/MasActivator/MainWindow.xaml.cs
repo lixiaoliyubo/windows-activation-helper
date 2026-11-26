@@ -38,12 +38,18 @@ namespace MasActivator
         private UpdateService.UpdateInfo _pendingUpdate;
 
         /// <summary>
+        /// 记录最近一次查询到的激活状态，决定主按钮显示“一键激活”还是“卸载激活”。
+        /// </summary>
+        private bool _isActivated;
+
+        /// <summary>
         /// 窗口加载完成后自动检测新版本，发现后弹窗让用户选择忽略或更新。
         /// </summary>
         /// <param name="sender">触发事件的窗口。</param>
         /// <param name="e">路由事件参数。</param>
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            BtnActivate.Focus();
             await CheckForUpdateAsync(false, false);
         }
 
@@ -266,13 +272,13 @@ namespace MasActivator
         }
 
         /// <summary>
-        /// 通过 WMI 查询 Windows 许可证状态，并更新界面的激活状态文字与颜色。
+        /// 查询本机 Windows 是否已激活，供界面刷新与激活结果轮询共用。
         /// </summary>
-        private void RefreshLicenseStatus()
+        /// <returns>已激活返回 true；未激活返回 false；查询失败返回 null。</returns>
+        private bool? QueryActivationStatus()
         {
             try
             {
-                bool activated = false;
                 using (var searcher = new ManagementObjectSearcher(
                     "SELECT Name, LicenseStatus FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL"))
                 {
@@ -286,30 +292,90 @@ namespace MasActivator
                                 continue;
                             }
 
-                            int status = Convert.ToInt32(item["LicenseStatus"]);
-                            if (status == 1)
+                            if (Convert.ToInt32(item["LicenseStatus"]) == 1)
                             {
-                                activated = true;
-                                break;
+                                return true;
                             }
                         }
                     }
                 }
 
-                TxtLicense.Text = activated ? "已激活" : "未激活";
-                TxtLicense.Foreground = activated
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(217, 119, 6));
+                return false;
             }
             catch (Exception)
             {
-                TxtLicense.Text = "无法查询";
-                TxtLicense.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(107, 114, 128));
+                return null;
             }
         }
 
         /// <summary>
-        /// 将内置脚本释放到临时目录，供激活流程直接调用，避免依赖外部文件。
+        /// 通过 WMI 查询 Windows 许可证状态，并更新界面的激活状态文字、颜色与主按钮形态。
+        /// </summary>
+        private void RefreshLicenseStatus()
+        {
+            bool? activated = QueryActivationStatus();
+            if (activated == null)
+            {
+                TxtLicense.Text = "无法查询";
+                TxtLicense.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(107, 114, 128));
+                return;
+            }
+
+            _isActivated = activated.Value;
+            TxtLicense.Text = _isActivated ? "已激活" : "未激活";
+            TxtLicense.Foreground = _isActivated
+                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105))
+                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(217, 119, 6));
+            UpdatePrimaryButton();
+        }
+
+        /// <summary>
+        /// 根据激活状态切换主按钮：未激活显示“一键激活”（蓝色），已激活显示“卸载激活”（红色警示）。
+        /// </summary>
+        private void UpdatePrimaryButton()
+        {
+            if (_isActivated)
+            {
+                BtnActivate.Content = "卸 载 激 活";
+                BtnActivate.Style = (Style)FindResource("WarnButton");
+                TxtStatus.Text = "系统已激活，点击可卸载激活状态";
+            }
+            else
+            {
+                BtnActivate.Content = "一 键 激 活";
+                BtnActivate.Style = (Style)FindResource("AccentButton");
+                TxtStatus.Text = "点击开始激活，全程自动完成，无需任何操作";
+            }
+        }
+
+        /// <summary>
+        /// 轮询等待系统完成激活。
+        /// MAS 静默模式不回显结果，退出码不能反映真实激活情况，因此必须轮询许可证状态。
+        /// </summary>
+        /// <param name="timeout">最长等待时间。</param>
+        /// <returns>检测到已激活返回 true；超时或查询失败返回 false。</returns>
+        private async Task<bool> WaitForActivationAsync(TimeSpan timeout)
+        {
+            DateTime deadline = DateTime.Now.Add(timeout);
+            while (DateTime.Now < deadline)
+            {
+                await Task.Delay(3000);
+                if (QueryActivationStatus() == true)
+                {
+                    return true;
+                }
+
+                int waitedSeconds = (int)(timeout.TotalSeconds - (deadline - DateTime.Now).TotalSeconds);
+                TxtStatus.Text = "正在等待系统确认激活…（已等待 " + waitedSeconds + " 秒）";
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 将内置脚本释放到本地应用数据目录，供激活流程直接调用，避免依赖外部文件。
+        /// 不能释放到 %TEMP%：MAS 脚本会检测自身路径是否位于用户 Temp 目录，命中后判定为
+        /// “从压缩包内直接运行”并立即退出，导致激活静默失败。
         /// </summary>
         /// <returns>释放后的脚本完整路径。</returns>
         private string ExtractScript()
@@ -323,7 +389,9 @@ namespace MasActivator
                 throw new InvalidOperationException("内置激活脚本缺失，请重新下载完整程序。");
             }
 
-            string directory = Path.Combine(Path.GetTempPath(), "MasActivator");
+            string directory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WindowsActivationHelper");
             Directory.CreateDirectory(directory);
             string scriptPath = Path.Combine(directory, "MAS_AIO.cmd");
 
@@ -465,62 +533,195 @@ namespace MasActivator
         }
 
         /// <summary>
-        /// 一键激活按钮点击事件：释放脚本、申请管理员权限并等待激活流程结束。
+        /// 主按钮点击事件：未激活时执行一键激活，已激活时执行卸载激活。
+        /// 全程在后台静默完成（黑窗口隐藏、WMI 卸载无窗口），只通过状态栏与激活状态文字反馈结果。
         /// </summary>
         /// <param name="sender">触发事件的按钮。</param>
         /// <param name="e">路由事件参数。</param>
         private async void BtnActivate_Click(object sender, RoutedEventArgs e)
         {
             BtnActivate.IsEnabled = false;
-            TxtStatus.Text = "正在准备…";
 
             try
             {
-                string arguments = GetSelectedArguments();
-                if (string.IsNullOrEmpty(arguments))
+                if (_isActivated)
                 {
-                    TxtStatus.Text = "请先选择一种激活类型。";
-                    return;
+                    await DeactivateAsync();
                 }
-
-                string scriptPath = ExtractScript();
-                var startInfo = new ProcessStartInfo
+                else
                 {
-                    FileName = "cmd.exe",
-                    Arguments = "/c \"\"" + scriptPath + "\" " + arguments + "\"",
-                    WorkingDirectory = Path.GetDirectoryName(scriptPath),
-                    UseShellExecute = true,
-                    Verb = "runas",
-                    WindowStyle = ProcessWindowStyle.Normal
-                };
-
-                using (Process process = Process.Start(startInfo))
-                {
-                    if (process == null)
-                    {
-                        throw new InvalidOperationException("无法启动激活程序。");
-                    }
-
-                    TxtStatus.Text = "已启动，请在黑色窗口中按提示操作";
-                    await Task.Run(() => process.WaitForExit());
-
-                    int exitCode = process.ExitCode;
-                    RefreshLicenseStatus();
-                    TxtStatus.Text = "已完成（退出码 " + exitCode + "），请查看窗口结果";
+                    await ActivateAsync();
                 }
-            }
-            catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
-            {
-                TxtStatus.Text = "已取消授权，激活未执行";
             }
             catch (Exception ex)
             {
-                TxtStatus.Text = "启动失败：" + ex.Message;
+                TxtStatus.Text = "操作失败：" + ex.Message;
             }
             finally
             {
                 BtnActivate.IsEnabled = true;
             }
+        }
+
+        /// <summary>
+        /// 执行一键激活：释放脚本、隐藏窗口静默运行 MAS，并轮询真实激活结果。
+        /// 程序清单已要求管理员权限运行，因此不再需要逐次 UAC 提权。
+        /// </summary>
+        /// <returns>异步操作任务。</returns>
+        private async Task ActivateAsync()
+        {
+            string arguments = GetSelectedArguments();
+            if (string.IsNullOrEmpty(arguments))
+            {
+                TxtStatus.Text = "请先选择一种激活类型。";
+                return;
+            }
+
+            TxtStatus.Text = "正在准备…";
+
+            string scriptPath = ExtractScript();
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/c \"\"" + scriptPath + "\" " + arguments + "\"",
+                WorkingDirectory = Path.GetDirectoryName(scriptPath),
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (Process process = Process.Start(startInfo))
+            {
+                if (process == null)
+                {
+                    throw new InvalidOperationException("无法启动激活程序。");
+                }
+
+                // 先挂上输出读取任务再等待退出，防止输出缓冲写满导致脚本被阻塞
+                Task<string> readOutput = process.StandardOutput.ReadToEndAsync();
+                Task<string> readError = process.StandardError.ReadToEndAsync();
+
+                TxtStatus.Text = "正在激活，请稍候，全程无需任何操作…";
+                await Task.Run(() => process.WaitForExit());
+                await Task.WhenAll(readOutput, readError);
+
+                TxtStatus.Text = "正在等待系统确认激活…";
+                bool activated = await WaitForActivationAsync(TimeSpan.FromMinutes(5));
+                RefreshLicenseStatus();
+                TxtStatus.Text = activated
+                    ? "激活成功，系统已完成激活"
+                    : "激活未完成，请稍后重试或更换激活类型";
+            }
+        }
+
+        /// <summary>
+        /// 执行卸载激活：通过 WMI 卸载 Windows 产品密钥并刷新状态。
+        /// </summary>
+        /// <returns>异步操作任务。</returns>
+        private async Task DeactivateAsync()
+        {
+            TxtStatus.Text = "正在卸载激活…";
+
+            bool anyUninstalled = await Task.Run(UninstallProductKeys);
+            await Task.Delay(1500);
+            RefreshLicenseStatus();
+
+            TxtStatus.Text = anyUninstalled && !_isActivated
+                ? "已取消激活，系统恢复为未激活状态"
+                : "卸载未完成，请稍后重试";
+        }
+
+        /// <summary>
+        /// 逐个卸载 Windows 的产品密钥；WMI 的 UninstallProductKey 返回 0 表示成功。
+        /// </summary>
+        /// <returns>是否有至少一个密钥被成功卸载。</returns>
+        private bool UninstallProductKeys()
+        {
+            bool any = false;
+
+            using (var searcher = new ManagementObjectSearcher(
+                "SELECT ID, Name, PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL"))
+            {
+                foreach (ManagementObject item in searcher.Get())
+                {
+                    using (item)
+                    {
+                        string name = item["Name"]?.ToString();
+                        if (string.IsNullOrEmpty(name) || name.IndexOf("Windows", StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            object result = item.InvokeMethod("UninstallProductKey", null);
+                            if (result != null && Convert.ToUInt32(result) == 0)
+                            {
+                                any = true;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // 单个许可证条目失败不影响其余条目的卸载
+                        }
+                    }
+                }
+            }
+
+            // 请求许可证服务刷新缓存状态，让 LicenseStatus 尽快反映卸载结果
+            try
+            {
+                using (var svcSearcher = new ManagementObjectSearcher("SELECT * FROM SoftwareLicensingService"))
+                {
+                    foreach (ManagementObject svc in svcSearcher.Get())
+                    {
+                        using (svc)
+                        {
+                            svc.InvokeMethod("RefreshLicenseStatus", null);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // 刷新失败不影响卸载结果判定
+            }
+
+            // WMI 卸载不可用时回退到 slmgr /upk：cscript 静默执行，不弹任何对话框
+            if (!any)
+            {
+                try
+                {
+                    string slmgrPath = Path.Combine(Environment.SystemDirectory, "slmgr.vbs");
+                    var fallbackInfo = new ProcessStartInfo
+                    {
+                        FileName = "cscript.exe",
+                        Arguments = "//nologo \"" + slmgrPath + "\" /upk",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    };
+
+                    using (Process fallback = Process.Start(fallbackInfo))
+                    {
+                        if (fallback != null)
+                        {
+                            fallback.StandardOutput.ReadToEnd();
+                            fallback.StandardError.ReadToEnd();
+                            fallback.WaitForExit();
+                            any = fallback.ExitCode == 0;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // 回退路径失败时保持 any=false，由调用方提示重试
+                }
+            }
+
+            return any;
         }
     }
 }
