@@ -12,7 +12,7 @@
     <Authors>源动力</Authors>
     <Company>源动力</Company>
     <Product>Windows 一键激活助手</Product>
-    <Description>基于 Microsoft Activation Scripts 的图形化一键激活工具</Description>
+    <Description>Windows 图形化一键激活工具（官方 GVLK 密钥 + KMS 在线激活）</Description>
     <Copyright>Copyright © 2026 源动力</Copyright>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
@@ -30,7 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\MAS_AIO.cmd" />
     <EmbeddedResource Include="Resources\wechat_promo.png" />
     <EmbeddedResource Include="Resources\brand_logo.png" />
     <Resource Include="Resources\app_icon.ico" />

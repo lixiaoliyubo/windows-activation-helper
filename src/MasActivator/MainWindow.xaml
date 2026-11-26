@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Windows 一键激活助手"
         Icon="pack://application:,,,/Resources/app_icon.ico"
-        Width="840" Height="660"
-        MinWidth="840" MinHeight="660"
+        Width="840" Height="790"
+        MinWidth="840" MinHeight="790"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -396,24 +396,15 @@
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Border Width="3" Height="14" Background="#2B6CB0" CornerRadius="2" Margin="0,0,8,0" />
-                            <TextBlock Text="02  选择激活类型" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Text="02  激活方式" Style="{StaticResource SectionTitle}" />
                         </StackPanel>
-                        <ComboBox x:Name="CmbActivation" Style="{StaticResource TypeCombo}" SelectedIndex="0"
-                                  SelectionChanged="CmbActivation_SelectionChanged">
-                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Windows 数字激活（HWID）· 推荐" />
-                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Office 激活（Ohook）" />
-                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="Windows + Office 双激活" />
-                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="TSforge 兼容性方案" />
-                            <ComboBoxItem Style="{StaticResource TypeComboItem}" Content="KMS 激活（180 天）" />
-                        </ComboBox>
                         <Border Style="{StaticResource DescriptionPanel}" Margin="0,10,0,0">
-                            <StackPanel>
-                                <TextBlock x:Name="TxtTypeTitle" Text="HWID · 推荐" FontSize="13" FontWeight="SemiBold" Foreground="#1F2937" />
-                                <TextBlock x:Name="TxtTypeDesc"
-                                           Text="自动匹配当前版本，激活信息与硬件绑定，重装系统后仍可自动激活。"
-                                           FontSize="11.5" Foreground="#6B7280" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock
+                                    Text="自动匹配微软官方 GVLK 密钥，依次执行：安装密钥 → 设置 KMS 服务器 → 激活。需保持联网，到期可再次运行续期。"
+                                    FontSize="11.5" Foreground="#6B7280" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -429,7 +420,7 @@
                         </Grid.ColumnDefinitions>
                         <Ellipse Width="7" Height="7" Fill="#2B6CB0" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <TextBlock x:Name="TxtStatus"
-                                   Text="点击后如弹出授权窗口，请选择“是”，并等待黑色窗口自动结束。"
+                                   Text="点击开始激活，全程自动完成，无需任何操作。"
                                    FontSize="12" Foreground="#2B6CB0" VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
@@ -440,7 +431,7 @@
 
         <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E3E9F1" BorderThickness="0,1,0,0" CornerRadius="0,0,12,12">
             <Grid Margin="22,0">
-                <TextBlock x:Name="TxtVersionFooter" Text="v1.0.0 · 内置 MAS 3.14 · © 2026 源动力" FontSize="11.5" Foreground="#8A94A6"
+                <TextBlock x:Name="TxtVersionFooter" Text="v1.0.0 · © 2026 源动力" FontSize="11.5" Foreground="#8A94A6"
                            VerticalAlignment="Center" HorizontalAlignment="Left" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="仅供个人学习与测试使用，请支持正版" FontSize="11.5" Foreground="#8A94A6"

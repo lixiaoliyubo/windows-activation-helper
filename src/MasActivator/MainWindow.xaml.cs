@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Management;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,10 +16,41 @@ using Microsoft.Win32;
 namespace MasActivator
 {
     /// <summary>
-    /// 主窗口：展示系统信息、激活类型，并调用内置的 MAS 脚本完成激活。
+    /// 主窗口：展示系统信息与激活状态，使用微软官方 GVLK 密钥通过 slmgr 完成 KMS 在线激活。
     /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// 内置 KMS 服务器地址，slmgr /skms 使用。
+        /// </summary>
+        private const string KmsServer = "kms.loli.best";
+
+        /// <summary>
+        /// 各 Windows 版本（EditionID）对应的微软官方 GVLK 客户端密钥。
+        /// 来源：微软官方文档《KMS 客户端激活和产品密钥》，Win10/11 及 LTSC 通用。
+        /// 家庭版（Core）不在 KMS 批量授权范围内，未收录。
+        /// </summary>
+        private static readonly Dictionary<string, string> GvlkKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Professional", "W269N-WFGWX-YVC9B-4J6C9-T83GX" },
+            { "ProfessionalN", "MH37W-N47XK-V7XM9-C7227-GCQG9" },
+            { "ProfessionalWorkstation", "NRG8B-VKK3Q-CXVCJ-9G2XF-6Q84J" },
+            { "ProfessionalWorkstationN", "9FNHH-K3HBT-3W4TD-6383H-6XYWF" },
+            { "ProfessionalEducation", "6TP4R-GNPTD-KYYHQ-7B7DP-J447Y" },
+            { "ProfessionalEducationN", "YVWGF-BXNMC-HTQYQ-CPQ99-66QFC" },
+            { "Education", "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2" },
+            { "EducationN", "2WH4N-8QGBV-H22JP-CT43Q-MDWWJ" },
+            { "Enterprise", "NPPR9-FWDCX-D2C8J-H872K-2YT43" },
+            { "EnterpriseN", "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4" },
+            { "EnterpriseG", "YYVX9-NTFWV-6MDM3-9PT4T-4M68B" },
+            { "EnterpriseGN", "44RPN-FTY23-9VTTB-MP9BX-T84FV" },
+            { "EnterpriseS", "M7XTQ-FN8P6-TTKYV-9D4CC-J462D" },
+            { "EnterpriseSN", "92NFX-8DJQP-P6BBQ-THF9C-7CG2H" },
+            { "IoTEnterpriseS", "KBN8V-HFGQ4-MGXVD-347P6-PDQGT" },
+            { "EnterpriseLTSB", "DCPHK-NFMTC-H88MJ-PFHPY-QJ4BJ" },
+            { "EnterpriseLTSBN", "QFFDN-GRT3P-VKWWX-X7T3R-8B639" }
+        };
+
         /// <summary>
         /// 初始化窗口，并立即读取当前系统的版本与激活状态。
         /// </summary>
@@ -27,10 +59,14 @@ namespace MasActivator
             InitializeComponent();
             LoadSystemInfo();
             RefreshLicenseStatus();
-            UpdateTypeDescription();
             SetVersionText();
             Loaded += MainWindow_Loaded;
         }
+
+        /// <summary>
+        /// 当前系统的 EditionID，用于匹配 GVLK 密钥；读取失败时为空。
+        /// </summary>
+        private string _editionId;
 
         /// <summary>
         /// 缓存检测到的更新信息，供按钮点击时执行升级。
@@ -217,7 +253,7 @@ namespace MasActivator
             }
 
             TxtVersionBadge.Text = "v" + version;
-            TxtVersionFooter.Text = "v" + version + " · 内置 MAS 3.14 · © 2026 源动力";
+            TxtVersionFooter.Text = "v" + version + " · © 2026 源动力";
         }
 
         /// <summary>
@@ -237,6 +273,7 @@ namespace MasActivator
 
                     string productName = key.GetValue("ProductName")?.ToString();
                     string editionId = key.GetValue("EditionID")?.ToString();
+                    _editionId = editionId;
                     string displayVersion = key.GetValue("DisplayVersion")?.ToString();
                     string currentBuild = key.GetValue("CurrentBuild")?.ToString();
                     object ubr = key.GetValue("UBR");
@@ -350,7 +387,7 @@ namespace MasActivator
 
         /// <summary>
         /// 轮询等待系统完成激活。
-        /// MAS 静默模式不回显结果，退出码不能反映真实激活情况，因此必须轮询许可证状态。
+        /// slmgr /ato 返回后许可证状态可能延迟几秒才刷新，不能只看命令输出，必须轮询确认。
         /// </summary>
         /// <param name="timeout">最长等待时间。</param>
         /// <returns>检测到已激活返回 true；超时或查询失败返回 false。</returns>
@@ -373,110 +410,79 @@ namespace MasActivator
         }
 
         /// <summary>
-        /// 将内置脚本释放到本地应用数据目录，供激活流程直接调用，避免依赖外部文件。
-        /// 不能释放到 %TEMP%：MAS 脚本会检测自身路径是否位于用户 Temp 目录，命中后判定为
-        /// “从压缩包内直接运行”并立即退出，导致激活静默失败。
+        /// 根据当前系统的 EditionID 匹配微软官方 GVLK 密钥。
         /// </summary>
-        /// <returns>释放后的脚本完整路径。</returns>
-        private string ExtractScript()
+        /// <returns>匹配到的密钥；版本不在 KMS 支持范围（如家庭版）时返回 null。</returns>
+        private string GetGvlkKey()
         {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            string resourceName = assembly.GetManifestResourceNames()
-                .FirstOrDefault(name => name.EndsWith("MAS_AIO.cmd", StringComparison.OrdinalIgnoreCase));
-
-            if (string.IsNullOrEmpty(resourceName))
+            if (string.IsNullOrWhiteSpace(_editionId))
             {
-                throw new InvalidOperationException("内置激活脚本缺失，请重新下载完整程序。");
+                return null;
             }
 
-            string directory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WindowsActivationHelper");
-            Directory.CreateDirectory(directory);
-            string scriptPath = Path.Combine(directory, "MAS_AIO.cmd");
+            return GvlkKeys.TryGetValue(_editionId, out string key) ? key : null;
+        }
 
-            using (Stream source = assembly.GetManifestResourceStream(resourceName))
+        /// <summary>
+        /// 以无窗口方式执行 slmgr.vbs 子命令并返回完整输出。
+        /// 用 cscript //nologo 调用而不是直接运行 slmgr.exe，避免每个步骤弹出 Windows Script Host 对话框。
+        /// </summary>
+        /// <param name="arguments">slmgr 子命令参数，例如 /ipk、/skms、/ato。</param>
+        /// <returns>命令输出文本；进程启动失败时返回 null。</returns>
+        private static async Task<string> RunSlmgrAsync(string arguments)
+        {
+            string slmgrPath = Path.Combine(Environment.SystemDirectory, "slmgr.vbs");
+            var startInfo = new ProcessStartInfo
             {
-                if (source == null)
+                FileName = "cscript.exe",
+                Arguments = "//nologo \"" + slmgrPath + "\" " + arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.Default,
+                StandardErrorEncoding = Encoding.Default
+            };
+
+            using (Process process = Process.Start(startInfo))
+            {
+                if (process == null)
                 {
-                    throw new InvalidOperationException("读取内置激活脚本失败。");
+                    return null;
                 }
 
-                using (FileStream target = File.Create(scriptPath))
+                // 先挂上输出读取任务再等待退出，防止输出缓冲写满导致进程被阻塞
+                Task<string> readOutput = process.StandardOutput.ReadToEndAsync();
+                Task<string> readError = process.StandardError.ReadToEndAsync();
+                await Task.Run(() => process.WaitForExit());
+                string output = await readOutput;
+                string error = await readError;
+                return output + error;
+            }
+        }
+
+        /// <summary>
+        /// 取多行输出中的第一行非空文本，用于状态栏提示。
+        /// </summary>
+        /// <param name="text">slmgr 的原始输出。</param>
+        /// <returns>第一行非空文本；没有内容时返回空字符串。</returns>
+        private static string FirstLine(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            foreach (string line in text.Split('\n'))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.Length > 0)
                 {
-                    source.CopyTo(target);
+                    return trimmed;
                 }
             }
 
-            return scriptPath;
-        }
-
-        /// <summary>
-        /// 根据当前选中的激活类型，返回 MAS 脚本对应的无人值守参数。
-        /// </summary>
-        /// <returns>脚本命令行参数；未选中任何类型时返回空字符串。</returns>
-        private string GetSelectedArguments()
-        {
-            switch (CmbActivation.SelectedIndex)
-            {
-                case 0:
-                    return "/HWID /S";
-                case 1:
-                    return "/Ohook /S";
-                case 2:
-                    return "/HWID /Ohook /S";
-                case 3:
-                    return "/Z-WindowsESUOffice /S";
-                case 4:
-                    return "/K-WindowsOffice /S";
-                default:
-                    return string.Empty;
-            }
-        }
-
-        /// <summary>
-        /// 根据下拉框当前选项，刷新下方的激活方式说明。
-        /// </summary>
-        private void UpdateTypeDescription()
-        {
-            if (TxtTypeTitle == null || TxtTypeDesc == null)
-            {
-                return;
-            }
-
-            switch (CmbActivation.SelectedIndex)
-            {
-                case 1:
-                    TxtTypeTitle.Text = "Ohook";
-                    TxtTypeDesc.Text = "适用于 Office 2016—2024 / Microsoft 365，激活后无需重复操作。";
-                    break;
-                case 2:
-                    TxtTypeTitle.Text = "Windows + Office";
-                    TxtTypeDesc.Text = "一次完成操作系统与办公软件的激活，适合全新安装的电脑。";
-                    break;
-                case 3:
-                    TxtTypeTitle.Text = "TSforge 兼容性方案";
-                    TxtTypeDesc.Text = "支持 Windows / ESU / Office，用于常规方式不适用时的替代方案。";
-                    break;
-                case 4:
-                    TxtTypeTitle.Text = "Online KMS";
-                    TxtTypeDesc.Text = "适合临时或批量环境，有效期 180 天，需要保持联网。";
-                    break;
-                default:
-                    TxtTypeTitle.Text = "HWID · 推荐";
-                    TxtTypeDesc.Text = "自动匹配当前版本，激活信息与硬件绑定，重装系统后仍可自动激活。";
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// 下拉框选项变化事件，同步更新说明文字。
-        /// </summary>
-        /// <param name="sender">触发事件的下拉框。</param>
-        /// <param name="e">选项变化事件参数。</param>
-        private void CmbActivation_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdateTypeDescription();
+            return string.Empty;
         }
 
         /// <summary>
@@ -564,55 +570,62 @@ namespace MasActivator
         }
 
         /// <summary>
-        /// 执行一键激活：释放脚本、隐藏窗口静默运行 MAS，并轮询真实激活结果。
-        /// 程序清单已要求管理员权限运行，因此不再需要逐次 UAC 提权。
+        /// 执行一键激活：安装官方 GVLK 密钥 → 设置 KMS 服务器 → 激活，并轮询真实激活结果。
+        /// 程序清单已要求管理员权限运行，slmgr 全程通过 cscript 无窗口执行，不弹任何对话框。
         /// </summary>
         /// <returns>异步操作任务。</returns>
         private async Task ActivateAsync()
         {
-            string arguments = GetSelectedArguments();
-            if (string.IsNullOrEmpty(arguments))
+            string gvlk = GetGvlkKey();
+            if (string.IsNullOrEmpty(gvlk))
             {
-                TxtStatus.Text = "请先选择一种激活类型。";
+                TxtStatus.Text = "当前版本（" + (string.IsNullOrWhiteSpace(_editionId) ? "未知" : _editionId) +
+                    "）不在 KMS 支持范围，家庭版请使用数字权利激活";
                 return;
             }
 
-            TxtStatus.Text = "正在准备…";
-
-            string scriptPath = ExtractScript();
-            var startInfo = new ProcessStartInfo
+            TxtStatus.Text = "正在安装产品密钥…";
+            string ipkOutput = await RunSlmgrAsync("/ipk " + gvlk);
+            if (ipkOutput == null)
             {
-                FileName = "cmd.exe",
-                Arguments = "/c \"\"" + scriptPath + "\" " + arguments + "\"",
-                WorkingDirectory = Path.GetDirectoryName(scriptPath),
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            using (Process process = Process.Start(startInfo))
-            {
-                if (process == null)
-                {
-                    throw new InvalidOperationException("无法启动激活程序。");
-                }
-
-                // 先挂上输出读取任务再等待退出，防止输出缓冲写满导致脚本被阻塞
-                Task<string> readOutput = process.StandardOutput.ReadToEndAsync();
-                Task<string> readError = process.StandardError.ReadToEndAsync();
-
-                TxtStatus.Text = "正在激活，请稍候，全程无需任何操作…";
-                await Task.Run(() => process.WaitForExit());
-                await Task.WhenAll(readOutput, readError);
-
-                TxtStatus.Text = "正在等待系统确认激活…";
-                bool activated = await WaitForActivationAsync(TimeSpan.FromMinutes(5));
-                RefreshLicenseStatus();
-                TxtStatus.Text = activated
-                    ? "激活成功，系统已完成激活"
-                    : "激活未完成，请稍后重试或更换激活类型";
+                TxtStatus.Text = "安装密钥失败：无法启动 slmgr";
+                return;
             }
+
+            if (ipkOutput.IndexOf("错误", StringComparison.Ordinal) >= 0 ||
+                ipkOutput.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                TxtStatus.Text = "安装密钥失败：" + FirstLine(ipkOutput);
+                return;
+            }
+
+            TxtStatus.Text = "正在设置 KMS 服务器…";
+            string skmsOutput = await RunSlmgrAsync("/skms " + KmsServer);
+            if (skmsOutput != null &&
+                (skmsOutput.IndexOf("错误", StringComparison.Ordinal) >= 0 ||
+                 skmsOutput.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                TxtStatus.Text = "设置 KMS 服务器失败：" + FirstLine(skmsOutput);
+                return;
+            }
+
+            TxtStatus.Text = "正在激活，请稍候，全程无需任何操作…";
+            string atoOutput = await RunSlmgrAsync("/ato");
+
+            TxtStatus.Text = "正在等待系统确认激活…";
+            bool activated = await WaitForActivationAsync(TimeSpan.FromSeconds(120));
+            RefreshLicenseStatus();
+
+            if (activated)
+            {
+                TxtStatus.Text = "激活成功，系统已完成激活";
+                return;
+            }
+
+            string failReason = FirstLine(atoOutput);
+            TxtStatus.Text = failReason.Length > 0
+                ? "激活未完成：" + failReason
+                : "激活未完成：请检查网络后重试";
         }
 
         /// <summary>
