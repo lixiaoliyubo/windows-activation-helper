@@ -6,15 +6,12 @@ cd /d "%~dp0"
 :: 一键发布脚本（Windows 批处理）
 ::   1) 按指定版本号编译 Release 单文件 exe，产物拷进 publish
 ::   2) 提交并推送所有远端仓库（gitee 必成功，其余 best-effort）
-::   3) 把新产物上传到运行中的测试虚拟机
 ::
 :: 用法：release.bat [版本号]
 ::   例：release.bat 1.2.5      不带参数则用下方 DEFAULT_VERSION
 :: ============================================================
 
 set DEFAULT_VERSION=1.2.4
-set VM_NAME=WB-Master-Test
-set VM_DEST=C:\va\latest
 set EXE_NAME=WindowsActivationHelper.exe
 set PROJECT=src\MasActivator\MasActivator.csproj
 
@@ -26,7 +23,7 @@ echo  Windows 一键激活助手 - 发布 v%VERSION%
 echo ============================================
 
 echo.
-echo [1/3] 编译 ...
+echo [1/2] 编译 ...
 dotnet build "%PROJECT%" -c Release -p:Version=%VERSION% -v q -nologo
 if errorlevel 1 goto :fail_build
 
@@ -36,7 +33,7 @@ if errorlevel 1 goto :fail_copy
 for %%F in ("publish\%EXE_NAME%") do echo     产物：publish\%%~nxF  ^(%%~zF 字节^)
 
 echo.
-echo [2/3] 提交并推送 ...
+echo [2/2] 提交并推送 ...
 git add -A
 git commit -m "chore: 发布 v%VERSION%" --quiet 2>nul
 if errorlevel 1 (
@@ -61,12 +58,6 @@ for /f "tokens=1" %%R in ('git remote') do (
 )
 
 echo.
-echo [3/3] 上传到虚拟机 %VM_NAME% ...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Copy-VMFile -Name '%VM_NAME%' -SourcePath '%~dp0publish\%EXE_NAME%' -DestinationPath '%VM_DEST%\%EXE_NAME%' -FileSource Host -CreateFullPath -Force"
-if errorlevel 1 goto :fail_upload
-echo     已上传：虚拟机 %VM_DEST%\%EXE_NAME%
-
-echo.
 echo 发布完成：v%VERSION%
 endlocal
 exit /b 0
@@ -83,10 +74,5 @@ exit /b 1
 
 :fail_push
 echo 推送 gitee 失败，中止发布
-endlocal
-exit /b 1
-
-:fail_upload
-echo 上传虚拟机失败：确认虚拟机已运行、集成服务已启用、当前账号有 Hyper-V 管理权限
 endlocal
 exit /b 1
