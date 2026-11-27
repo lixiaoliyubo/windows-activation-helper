@@ -6,6 +6,7 @@ cd /d "%~dp0"
 :: 一键发布脚本（Windows 批处理）
 ::   1) 按指定版本号编译 Release 单文件 exe，产物拷进 publish
 ::   2) 提交并推送所有远端仓库（gitee 必成功，其余 best-effort）
+::      推送被远端新提交挡住时，自动 pull --rebase 后重试一次
 ::
 :: 用法：release.bat [版本号]
 ::   例：release.bat 1.2.5      不带参数则用下方 DEFAULT_VERSION
@@ -42,9 +43,8 @@ if errorlevel 1 (
     echo     已提交本地改动
 )
 
-git push gitee main --quiet
+call :push_gitee
 if errorlevel 1 goto :fail_push
-echo     已推送 gitee/main
 
 for /f "tokens=1" %%R in ('git remote') do (
     if /i not "%%R"=="gitee" (
@@ -60,19 +60,46 @@ for /f "tokens=1" %%R in ('git remote') do (
 echo.
 echo 发布完成：v%VERSION%
 endlocal
+pause
 exit /b 0
 
 :fail_build
-echo 编译失败，中止发布
+echo.
+echo [失败] 编译失败，中止发布
 endlocal
+pause
 exit /b 1
 
 :fail_copy
-echo 产物拷贝失败，检查 bin\Release\net48 下是否存在 %EXE_NAME%
+echo.
+echo [失败] 产物拷贝失败，检查 bin\Release\net48 下是否存在 %EXE_NAME%
 endlocal
+pause
 exit /b 1
 
 :fail_push
-echo 推送 gitee 失败，中止发布
+echo.
+echo [失败] gitee 推送失败，中止发布。请手动处理：git pull --rebase gitee main
 endlocal
+pause
 exit /b 1
+
+:push_gitee
+git push gitee main --quiet
+if not errorlevel 1 (
+    echo     已推送 gitee/main
+    exit /b 0
+)
+echo     gitee 被远端新提交挡住，自动 pull --rebase 后重试 ...
+git pull --rebase gitee main
+if errorlevel 1 (
+    echo     rebase 存在冲突，请手动解决后重跑本脚本
+    exit /b 1
+)
+git push gitee main --quiet
+if errorlevel 1 (
+    echo     重试后仍推送失败
+    exit /b 1
+)
+echo     已推送 gitee/main（rebase 重试成功）
+exit /b 0
