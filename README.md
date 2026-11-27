@@ -30,8 +30,18 @@
 3. 点蓝色「**一键激活**」，等状态栏变绿即可
 4. 需要取消时，点红色「**卸载激活**」
 
+## 🖼 运行截图
+
 <div align="center">
-<img src="docs/app-inactive.png" width="420" alt="未激活状态">&nbsp;&nbsp;<img src="docs/app-activated.png" width="420" alt="已激活状态">
+<img src="screenshot/app-inactive.png" width="400" alt="启动后读取系统信息，显示当前未激活">&nbsp;&nbsp;<img src="screenshot/app-activated.png" width="400" alt="一键激活完成，状态栏转绿">
+<br>
+<sub>左：启动即读取系统信息与激活状态　·　右：点「一键激活」后确认授权才报完成</sub>
+</div>
+
+<div align="center">
+<img src="screenshot/system-activated.png" width="640" alt="系统属性显示 Windows 已激活">
+<br>
+<sub>激活后系统属性显示「Windows 已激活」</sub>
 </div>
 
 ## 📋 环境要求
@@ -51,6 +61,23 @@ build.cmd
 
 环境：Windows + .NET SDK（项目以 SDK 10.0.400 编译，目标框架 `net48`），产物输出到 `publish\WindowsActivationHelper.exe`。
 
+## 📦 一键发布
+
+`release.bat` 把「编译 → 抄产物 → 推送仓库 → 上传测试机」四步串成一条命令：
+
+```bat
+release.bat            :: 用脚本内 DEFAULT_VERSION
+release.bat 1.2.5      :: 指定版本号
+```
+
+脚本按顺序执行：
+
+1. `dotnet build -c Release -p:Version=<版本号>`，产物拷进 `publish\`
+2. `git add -A` / 提交 / 推送 `gitee main`（有 `github` remote 时顺带推送，失败只警告）
+3. `Copy-VMFile` 把 exe 传到测试虚拟机的 `C:\va\latest`
+
+任一步失败立刻中止并打印原因；虚拟机名、目标目录、默认版本都在脚本头部集中配置，改一行即可复用。
+
 ## 📁 目录结构
 
 ```text
@@ -59,8 +86,10 @@ src/MasActivator/                WPF 源码
   MainWindow.xaml.cs            系统信息读取、GVLK 匹配、slmgr 调用
   UpdateService.cs              版本检测与自更新
   App.manifest                  DPI 感知与管理员权限清单
+screenshot/                     运行截图（未激活 / 已激活 / 系统属性）
 publish/WindowsActivationHelper.exe  成品
 build.cmd                       一键编译脚本
+release.bat                     一键发布脚本（编译 + 推送 + 上传测试机）
 ```
 
 ## 📄 免责声明
