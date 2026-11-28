@@ -87,7 +87,7 @@ jobs:
           if git rev-parse "v${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
             echo "标签已存在，跳过"
           else
-            git tag -a "v${{ steps.version.outputs.value }}" -m "Release v${{ steps.version.outputs.value }}"
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" tag -a "v${{ steps.version.outputs.value }}" -m "Release v${{ steps.version.outputs.value }}"
             git push origin "v${{ steps.version.outputs.value }}"
           fi
 
