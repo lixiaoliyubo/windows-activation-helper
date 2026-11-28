@@ -27,11 +27,11 @@
 - **更新缓存可清干净**：清理「系统更新与补丁」前自动暂停 `wuauserv` / `dosvc`，清理结束（含取消）自动恢复
 - **高风险项默认勾选 + 二次确认**：回收站、下载文件夹属默认勾选并带「谨慎清理」红标；确认弹层会明确写出「将清空当前账户的回收站」「将删除「下载」文件夹内的全部文件」
 - **问题反馈入口**：标题栏「问题反馈」可填写内容，自动附带版本与系统信息，一键复制并打开官网反馈页
-- **自动更新**：启动时检查 Gitee Release，支持一键下载替换升级，页脚可手动检查
+- **自动更新**：启动时先查 Release，再比对仓库版本清单兜底（Gitee 接口被限流也能发现新版本）；下载后校验文件版本，避免装回旧包，一键替换重启
 
 ## 📥 下载
 
-从 [Releases](https://gitee.com/lixiaoliyubo/windows-activation-helper/releases) 页下载 `WindowsActivationHelper.exe`（约 290 KB）。
+从 [Releases](https://gitee.com/lixiaoliyubo/windows-activation-helper/releases) 页下载 `WindowsActivationHelper.exe`（约 297 KB，当前 v1.2.5，旧版本启动后会自动提示升级）。
 
 ## 🚀 使用方法
 
