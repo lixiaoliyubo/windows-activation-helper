@@ -108,7 +108,6 @@ src/MasActivator/                WPF 源码
   UpdateService.cs              版本检测与自更新
   App.manifest                  DPI 感知与管理员权限清单
 screenshot/                     README 用截图（激活、清理演示、扫描、清单、确认）
-截图/                            开发过程截图（各轮 UI 迭代留档）
 publish/WindowsActivationHelper.exe  成品
 build.cmd                       一键编译脚本
 release.bat                     一键发布脚本（编译 + 推送 + 上传测试机）
