@@ -30,28 +30,50 @@ jobs:
       - name: 计算版本号
         id: version
         shell: bash
-        run: echo "value=1.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        run: |
+          v=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/MasActivator/MasActivator.csproj | head -n1)
+          if [ -z "$v" ]; then v=1.0.0; fi
+          echo "value=$v" >> "$GITHUB_OUTPUT"
+
+      - name: 判断该版本是否已发布
+        id: check
+        shell: bash
+        run: |
+          if git rev-parse -q --verify "refs/tags/v${{ steps.version.outputs.value }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: 构建
+        if: steps.check.outputs.exists == 'false'
         shell: cmd
         run: dotnet build src\MasActivator\MasActivator.csproj -c Release --nologo -p:Version=${{ steps.version.outputs.value }}
 
       - name: 复制成品
+        if: steps.check.outputs.exists == 'false'
         shell: cmd
         run: copy /Y src\MasActivator\bin\Release\net48\WindowsActivationHelper.exe publish\WindowsActivationHelper.exe
 
+      - name: 写入版本清单
+        if: steps.check.outputs.exists == 'false'
+        shell: bash
+        run: echo "${{ steps.version.outputs.value }}" > publish/version.txt
+
       - name: 回写成品到仓库
+        if: steps.check.outputs.exists == 'false'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add publish/WindowsActivationHelper.exe
+          git add publish/WindowsActivationHelper.exe publish/version.txt
           if ! git diff --cached --quiet; then
             git commit -m "chore: 自动构建 v${{ steps.version.outputs.value }} [skip ci]"
             git push
           fi
 
       - name: 同步成品到 Gitee
+        if: steps.check.outputs.exists == 'false'
         shell: bash
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
@@ -104,6 +126,7 @@ jobs:
           echo "Gitee 同步完成"
 
       - name: 打版本标签
+        if: steps.check.outputs.exists == 'false'
         shell: bash
         run: |
           # 显式创建标签：消息保持 ASCII，避免 Windows runner 编码把中文写成 ?????
@@ -115,6 +138,7 @@ jobs:
           fi
 
       - name: 创建 Release
+        if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.value }}
