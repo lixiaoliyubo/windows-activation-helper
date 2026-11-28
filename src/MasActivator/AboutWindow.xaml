@@ -56,7 +56,7 @@
             <Border Grid.Row="0" Background="#1B5FA8" CornerRadius="12,12,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="20,0">
-                    <TextBlock Text="关于我" FontSize="16" FontWeight="SemiBold" Foreground="White"
+                    <TextBlock Text="关于本工具" FontSize="16" FontWeight="SemiBold" Foreground="White"
                                VerticalAlignment="Center" />
                     <Button Content="×" Style="{StaticResource AboutCloseButton}" HorizontalAlignment="Right"
                             Click="BtnClose_Click" />
@@ -71,6 +71,8 @@
                     </Border>
                     <TextBlock Text="阿波技术栈" FontSize="17" FontWeight="SemiBold" Foreground="#1F2937"
                                HorizontalAlignment="Center" Margin="0,9,0,0" />
+                    <TextBlock Text="Windows 激活 · 清理助手" FontSize="12.5" FontWeight="SemiBold" Foreground="#1B5FA8"
+                               HorizontalAlignment="Center" Margin="0,6,0,0" />
                     <TextBlock Text="全栈 + 工业软件工程实践" FontSize="11.5" Foreground="#6B7280"
                                HorizontalAlignment="Center" Margin="0,4,0,0" />
                 </StackPanel>

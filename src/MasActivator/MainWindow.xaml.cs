@@ -1,14 +1,16 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Navigation;
 using Microsoft.Win32;
@@ -60,7 +62,37 @@ namespace MasActivator
             LoadSystemInfo();
             RefreshLicenseStatus();
             SetVersionText();
+            BuildCleanItems();
             Loaded += MainWindow_Loaded;
+        }
+
+        /// <summary>确认弹层的结果回调；等待期间挂起的任务由按钮点击结束。</summary>
+        private TaskCompletionSource<bool> _confirmTcs;
+
+        /// <summary>显示应用内确认弹层并等待用户选择；true 表示已确认。</summary>
+        private Task<bool> ShowConfirmAsync(string title, string body, bool danger)
+        {
+            _confirmTcs = new TaskCompletionSource<bool>();
+            TxtConfirmTitle.Text = title;
+            TxtConfirmBody.Text = body;
+            BtnConfirmOk.Content = danger ? "仍然清空" : "确定清理";
+            BtnConfirmOk.Style = (Style)FindResource(danger ? "WarnSmallButton" : "SmallSolidButton");
+            ConfirmOverlay.Visibility = Visibility.Visible;
+            return _confirmTcs.Task;
+        }
+
+        /// <summary>确认弹层：确定。</summary>
+        private void BtnConfirmOk_Click(object sender, RoutedEventArgs e)
+        {
+            ConfirmOverlay.Visibility = Visibility.Collapsed;
+            if (_confirmTcs != null) _confirmTcs.TrySetResult(true);
+        }
+
+        /// <summary>确认弹层：取消。</summary>
+        private void BtnConfirmCancel_Click(object sender, RoutedEventArgs e)
+        {
+            ConfirmOverlay.Visibility = Visibility.Collapsed;
+            if (_confirmTcs != null) _confirmTcs.TrySetResult(false);
         }
 
         /// <summary>
@@ -77,6 +109,7 @@ namespace MasActivator
         /// 记录最近一次查询到的激活状态，决定主按钮显示“一键激活”还是“卸载激活”。
         /// </summary>
         private bool _isActivated;
+
 
         /// <summary>
         /// 窗口加载完成后自动检测新版本，发现后弹窗让用户选择忽略或更新。
@@ -253,7 +286,7 @@ namespace MasActivator
             }
 
             TxtVersionBadge.Text = "v" + version;
-            TxtVersionFooter.Text = "v" + version + " · © 2026 源动力";
+            TxtVersionFooter.Text = "Windows 激活 · 清理助手 · v" + version + " · © 2026 源动力";
         }
 
         /// <summary>
@@ -483,6 +516,83 @@ namespace MasActivator
             }
 
             return string.Empty;
+        }
+
+        /// <summary>拼出便于反馈排查的系统描述，如「Windows 10 企业版 LTSC 24H2 26100」。</summary>
+        private static string OsLabel()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
+                {
+                    if (key != null)
+                    {
+                        string name = key.GetValue("ProductName") as string;
+                        string build = key.GetValue("DisplayVersion") as string;
+                        string current = key.GetValue("CurrentBuild") as string;
+                        string os = (name ?? "Windows") + (string.IsNullOrEmpty(build) ? "" : " " + build)
+                                    + (string.IsNullOrEmpty(current) ? "" : " 内部版本 " + current);
+                        return os + " · " + (Environment.Is64BitOperatingSystem ? "64 位" : "32 位");
+                    }
+                }
+            }
+            catch
+            {
+                // 读注册表失败时退回系统自带描述。
+            }
+            return Environment.OSVersion.VersionString;
+        }
+
+        /// <summary>
+        /// 打开「问题反馈」弹层，并自动带上版本号、系统版本等环境信息。
+        /// </summary>
+        private void BtnFeedback_Click(object sender, RoutedEventArgs e)
+        {
+            string version = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+            int plus = version.IndexOf('+');
+            if (plus > 0) version = version.Substring(0, plus);
+            TxtFeedbackMeta.Text = "环境信息：Windows 激活 · 清理助手 v" + version + " · " + OsLabel();
+            FeedbackOverlay.Visibility = Visibility.Visible;
+            TxtFeedbackInput.Focus();
+        }
+
+        /// <summary>关闭「问题反馈」弹层。</summary>
+        private void BtnFeedbackCancel_Click(object sender, RoutedEventArgs e)
+        {
+            FeedbackOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 把反馈内容（含环境信息）复制到剪贴板，并打开 Gitee 反馈页。
+        /// </summary>
+        private void BtnFeedbackSubmit_Click(object sender, RoutedEventArgs e)
+        {
+            string body = TxtFeedbackInput.Text.Trim();
+            string text = (body.Length == 0 ? "" : body + Environment.NewLine + Environment.NewLine)
+                          + TxtFeedbackMeta.Text;
+            try
+            {
+                Clipboard.SetText(text);
+            }
+            catch
+            {
+                // 剪贴板被其它程序占用时忽略，仅影响复制。
+            }
+            try
+            {
+                Process.Start(new ProcessStartInfo("https://yuandl.cn/feedback")
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                TxtFeedbackMeta.Text = "打开浏览器失败：" + ex.Message;
+                return;
+            }
+            FeedbackOverlay.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>

@@ -60,17 +60,9 @@
 
 ![清理前确认](screenshot/cleanup-confirm.png)
 
-**待激活** —— 启动即读取系统版本、内部版本、架构、安装类型与当前激活状态。
+**系统激活** —— 读取系统版本、内部版本、架构、安装类型与激活状态；已激活时按钮变为红色「卸载激活」，页脚可查看新版本。
 
-![待激活](screenshot/app-inactive.png)
-
-**激活完成** —— 点「一键激活」后轮询确认授权状态，成功才报完成，状态栏转绿。
-
-![激活完成](screenshot/app-activated.png)
-
-**系统属性** —— 激活后显示「Windows 已激活」。
-
-![系统属性显示 Windows 已激活](screenshot/system-activated.png)
+![系统激活](screenshot/activation.png)
 
 ## 📋 环境要求
 
